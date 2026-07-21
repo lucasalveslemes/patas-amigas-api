@@ -1,0 +1,6 @@
+@PatasAmigas.API_HostAddress = http://localhost:5258
+
+GET {{PatasAmigas.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
