@@ -4,6 +4,8 @@ using PatasAmigas.API.Data;
 using PatasAmigas.API.Models;
 using PatasAmigas.API.DTOs;
 using Microsoft.AspNetCore.Authorization;
+using CloudinaryDotNet;
+using CloudinaryDotNet.Actions;
 
 namespace PatasAmigas.API.Controllers
 {
@@ -12,10 +14,12 @@ namespace PatasAmigas.API.Controllers
     public class AnimaisController : ControllerBase
     {
         private readonly AppDbContext _context; //Injeção dde dependencia. Por isso configuramos builder.Services.AddDbContext
+        private readonly Cloudinary _cloudinary; //Cloudinary adicionado na injeção de dependência 
 
-        public AnimaisController(AppDbContext context)
+        public AnimaisController(AppDbContext context, Cloudinary cloudinary)
         {
             _context = context;
+            _cloudinary = cloudinary;
         }
 
         //GET : api/animais
@@ -86,6 +90,52 @@ namespace PatasAmigas.API.Controllers
             await _context.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        // POST: api/animais/1/foto
+        [Authorize]
+        [HttpPost("{id}/foto")]
+        public async Task<ActionResult> UploadFoto(int id, IFormFile foto)
+        {
+            var animal = await _context.Animais.FindAsync(id);
+            if (animal == null)
+                return NotFound("Animal não encontrado.");
+
+            if (foto == null || foto.Length == 0)
+                return BadRequest("Nenhuma imagem enviada.");
+
+            // Valida o tipo do arquivo
+            var tiposPermitidos = new[] { "image/jpeg", "image/png", "image/webp" };
+            if (!tiposPermitidos.Contains(foto.ContentType))
+                return BadRequest("Formato inválido. Use JPG, PNG ou WEBP.");
+
+            // Valida o tamanho — máximo 5MB
+            if (foto.Length > 5 * 1024 * 1024)
+                return BadRequest("Imagem muito grande. Máximo 5MB.");
+
+            using var stream = foto.OpenReadStream();
+
+            var uploadParams = new ImageUploadParams
+            {
+                File = new FileDescription(foto.FileName, stream),
+                Folder = "patas-amigas",
+                PublicId = $"animal-{id}",
+                Overwrite = true,
+                Transformation = new Transformation()
+                    .Width(800).Height(600)
+                    .Crop("fill").Gravity("auto")
+                    .Quality("auto").FetchFormat("auto")
+            };
+
+            var resultado = await _cloudinary.UploadAsync(uploadParams);
+
+            if (resultado.Error != null)
+                return BadRequest($"Erro no upload: {resultado.Error.Message}");
+
+            animal.FotoUrl = resultado.SecureUrl.ToString();
+            await _context.SaveChangesAsync();
+
+            return Ok(new { fotoUrl = animal.FotoUrl });
         }
 
         // DELETE: api/animais/1

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using PatasAmigas.API.Data;
 using System.Text;
+using CloudinaryDotNet;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,6 +41,17 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection")));
+
+//Cloudinary
+var cloudinaryConfig = builder.Configuration.GetSection("Cloudinary");
+var cloudinaryAccount = new CloudinaryDotNet.Account(
+    cloudinaryConfig["CloudName"],
+    cloudinaryConfig["ApiKey"],
+    cloudinaryConfig["ApiSecret"]
+);
+var cloudinary = new CloudinaryDotNet.Cloudinary(cloudinaryAccount);
+cloudinary.Api.Secure = true;
+builder.Services.AddSingleton(cloudinary);
 
 // Configuração JWT
 var jwtKey = builder.Configuration["Jwt:Key"]!;
