@@ -65,9 +65,9 @@ namespace PatasAmigas.API.Controllers
             if (dto.Valor <= 0)
                 return BadRequest("O valor da doação deve ser maior que zero.");
 
-            var formasValidas = new[] { "PIX", "Transferência", "Dinheiro" };
+            var formasValidas = new[] { "PIX", "Dinheiro" };
             if (!formasValidas.Contains(dto.FormaPagamento))
-                return BadRequest("Forma de pagamento inválida. Use: PIX, Transferência ou Dinheiro.");
+                return BadRequest("Forma de pagamento inválida. Use: PIX ou Dinheiro.");
 
             var doacao = new Doacao
             {
